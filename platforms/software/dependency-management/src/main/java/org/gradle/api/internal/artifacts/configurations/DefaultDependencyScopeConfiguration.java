@@ -45,6 +45,7 @@ import org.gradle.internal.work.WorkerThreadRegistry;
  */
 public class DefaultDependencyScopeConfiguration extends DefaultConfiguration implements DependencyScopeConfiguration {
 
+    @SuppressWarnings("this-escape")
     public DefaultDependencyScopeConfiguration(
         DomainObjectContext domainObjectContext,
         String name,
