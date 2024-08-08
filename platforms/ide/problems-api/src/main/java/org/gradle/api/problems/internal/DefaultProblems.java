@@ -24,10 +24,8 @@ import org.gradle.internal.operations.CurrentBuildOperationRef;
 import org.gradle.internal.service.scopes.Scope;
 import org.gradle.internal.service.scopes.ServiceScope;
 import org.gradle.problems.buildtree.ProblemStream;
-import org.gradle.util.Path;
 
 import java.util.Collection;
-import java.util.List;
 
 import static org.gradle.api.problems.internal.DefaultProblemCategory.GRADLE_CORE_NAMESPACE;
 
@@ -54,9 +52,6 @@ public class DefaultProblems implements InternalProblems {
         this.currentBuildOperationRef = currentBuildOperationRef;
         internalReporter = createReporter(emitter, problemStream, problemsForThrowables);
     }
-
-    public static final ThreadLocal<Path> taskPath = new ThreadLocal<Path>();
-    public static final ThreadLocal<List<Problem>> problems = new ThreadLocal<List<Problem>>();
 
     @Override
     public ProblemReporter forNamespace(String namespace) {

@@ -24,7 +24,6 @@ import org.gradle.api.internal.DocumentationRegistry;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.api.logging.configuration.LoggingConfiguration;
 import org.gradle.api.logging.configuration.ShowStacktrace;
-import org.gradle.api.problems.internal.Problem;
 import org.gradle.api.problems.internal.ProblemAwareFailure;
 import org.gradle.execution.MultipleBuildFailures;
 import org.gradle.initialization.BuildClientMetaData;
@@ -184,19 +183,7 @@ public class BuildExceptionReporter implements Action<Throwable> {
 
         fillInFailureResolution(details);
 
-        Throwable f = failure;
-        while (f != null) {
-            if (f instanceof ProblemAwareFailure) {
-                for (Problem p : ((ProblemAwareFailure) f).getProblems()) {
-                    System.out.println("Problem: " + p.getDefinition().getId() + ", Type: " + f.getClass().getName());
-                }
-            }
-            f = f.getCause();
-        }
-
-
-
-        if (failure instanceof ContextAwareException) { // maybe here
+        if (failure instanceof ContextAwareException) {
             ((ContextAwareException) failure).accept(new ExceptionFormattingVisitor(details));
         } else {
             details.appendDetails();

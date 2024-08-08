@@ -15,45 +15,23 @@
  */
 package org.gradle.api.tasks;
 
-import com.google.common.collect.ImmutableList;
 import org.gradle.api.Task;
-import org.gradle.api.problems.internal.DefaultProblems;
-import org.gradle.api.problems.internal.Problem;
-import org.gradle.api.problems.internal.ProblemAwareFailure;
 import org.gradle.internal.exceptions.Contextual;
 import org.gradle.internal.exceptions.DefaultMultiCauseException;
-
-import java.util.Collection;
-import java.util.List;
 
 /**
  * <p>A {@code TaskExecutionException} is thrown when a task fails to execute successfully.</p>
  */
 @Contextual
-public class TaskExecutionException extends DefaultMultiCauseException implements ProblemAwareFailure {
+public class TaskExecutionException extends DefaultMultiCauseException {
     private final Task task;
-    private final Collection<Problem> problems;
 
     public TaskExecutionException(Task task, Throwable cause) {
         super(String.format("Execution failed for %s.", task), cause);
         this.task = task;
-        System.err.println("yProblems ");
-        List<Problem> problems = DefaultProblems.problems.get();
-        if (problems != null) {
-            System.err.println(problems);
-            this.problems = ImmutableList.copyOf(problems);
-        } else {
-            System.err.println("yNo problems");
-            this.problems = ImmutableList.of();
-        }
     }
 
     public Task getTask() {
         return task;
-    }
-
-    @Override
-    public Collection<Problem> getProblems() {
-        return this.problems;
     }
 }

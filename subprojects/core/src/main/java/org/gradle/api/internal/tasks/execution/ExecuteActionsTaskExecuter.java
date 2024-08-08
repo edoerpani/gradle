@@ -23,7 +23,6 @@ import org.gradle.api.internal.tasks.TaskExecuterResult;
 import org.gradle.api.internal.tasks.TaskExecutionContext;
 import org.gradle.api.internal.tasks.TaskExecutionOutcome;
 import org.gradle.api.internal.tasks.TaskStateInternal;
-import org.gradle.api.problems.internal.DefaultProblems;
 import org.gradle.api.tasks.TaskExecutionException;
 import org.gradle.caching.internal.origin.OriginMetadata;
 import org.gradle.internal.event.ListenerManager;
@@ -39,8 +38,6 @@ import org.gradle.internal.file.ReservedFileSystemLocationRegistry;
 import org.gradle.internal.hash.ClassLoaderHierarchyHasher;
 import org.gradle.internal.operations.BuildOperationRunner;
 import org.gradle.internal.work.AsyncWorkTracker;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -66,8 +63,6 @@ public class ExecuteActionsTaskExecuter implements TaskExecuter {
     private final FileCollectionFactory fileCollectionFactory;
     private final TaskDependencyFactory taskDependencyFactory;
     private final PathToFileResolver fileResolver;
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(ExecuteActionsTaskExecuter.class);
 
     public ExecuteActionsTaskExecuter(
         ExecutionHistoryStore executionHistoryStore,
@@ -118,15 +113,10 @@ public class ExecuteActionsTaskExecuter implements TaskExecuter {
             taskDependencyFactory
         );
         try {
-            LOGGER.warn("xxx Executing task '{}' on thread '{}'", task, Thread.currentThread().getId());
-            DefaultProblems.taskPath.set(task.getIdentityPath());
             return executeIfValid(task, state, context, work);
         } catch (WorkValidationException ex) {
             state.setOutcome(ex);
             return TaskExecuterResult.WITHOUT_OUTPUTS;
-        } finally {
-            DefaultProblems.taskPath.remove();
-            DefaultProblems.problems.remove();
         }
     }
 
