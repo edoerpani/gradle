@@ -18,10 +18,15 @@ package org.gradle.problems.internal.emitters;
 
 import org.gradle.api.Incubating;
 import org.gradle.api.problems.internal.DefaultProblemProgressDetails;
+import org.gradle.api.problems.internal.DefaultProblems;
 import org.gradle.api.problems.internal.Problem;
 import org.gradle.api.problems.internal.ProblemEmitter;
 import org.gradle.internal.operations.BuildOperationProgressEventEmitter;
 import org.gradle.internal.operations.OperationIdentifier;
+import org.gradle.util.Path;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Emits problems as build operation progress events.
@@ -39,6 +44,16 @@ public class BuildOperationBasedProblemEmitter implements ProblemEmitter {
 
     @Override
     public void emit(Problem problem, OperationIdentifier id) {
+        // if task is being executed; associate problem with task
+        Path path = DefaultProblems.taskPath.get();
+        if (path != null) {
+            List<Problem> problems = DefaultProblems.problems.get();
+            if (problems == null) {
+                problems = new ArrayList<>();
+            }
+            problems.add(problem);
+            DefaultProblems.problems.set(problems);
+        }
         eventEmitter.emitNow(id, new DefaultProblemProgressDetails(problem));
     }
 }
