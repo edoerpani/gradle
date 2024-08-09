@@ -16,7 +16,11 @@
 
 package org.gradle.tooling.internal.provider.runner;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import com.google.common.io.Files;
 import org.gradle.api.NonNullApi;
 import org.gradle.api.problems.ProblemGroup;
 import org.gradle.api.problems.ProblemId;
@@ -27,10 +31,12 @@ import org.gradle.api.problems.internal.DeprecationData;
 import org.gradle.api.problems.internal.DocLink;
 import org.gradle.api.problems.internal.FileLocation;
 import org.gradle.api.problems.internal.GeneralData;
+import org.gradle.api.problems.internal.InternalProblemBuilder;
 import org.gradle.api.problems.internal.LineInFileLocation;
 import org.gradle.api.problems.internal.OffsetInFileLocation;
 import org.gradle.api.problems.internal.PluginIdLocation;
 import org.gradle.api.problems.internal.Problem;
+import org.gradle.api.problems.internal.ProblemAwareFailure;
 import org.gradle.api.problems.internal.ProblemDefinition;
 import org.gradle.api.problems.internal.ProblemLocation;
 import org.gradle.api.problems.internal.TaskPathLocation;
@@ -48,6 +54,8 @@ import org.gradle.internal.build.event.types.DefaultProblemGroup;
 import org.gradle.internal.build.event.types.DefaultProblemId;
 import org.gradle.internal.build.event.types.DefaultSeverity;
 import org.gradle.internal.build.event.types.DefaultSolution;
+import org.gradle.internal.operations.BuildOperationDescriptor;
+import org.gradle.internal.operations.OperationFinishEvent;
 import org.gradle.internal.operations.OperationIdentifier;
 import org.gradle.internal.operations.OperationProgressEvent;
 import org.gradle.tooling.internal.protocol.InternalFailure;
@@ -65,7 +73,12 @@ import org.gradle.tooling.internal.protocol.problem.InternalSeverity;
 import org.gradle.tooling.internal.protocol.problem.InternalSolution;
 
 import javax.annotation.Nullable;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -85,6 +98,9 @@ public class ProblemsProgressEventConsumer extends ClientForwardingBuildOperatio
     private final Supplier<OperationIdentifier> operationIdentifierSupplier;
     private final AggregatingProblemConsumer aggregator;
 
+    private final Multimap<Throwable, Problem> problemsForThrowables = Multimaps.synchronizedMultimap(HashMultimap.<Throwable, Problem>create());
+
+
     ProblemsProgressEventConsumer(ProgressEventConsumer progressEventConsumer, Supplier<OperationIdentifier> operationIdentifierSupplier, AggregatingProblemConsumer aggregator) {
         super(progressEventConsumer);
         this.operationIdentifierSupplier = operationIdentifierSupplier;
@@ -98,9 +114,117 @@ public class ProblemsProgressEventConsumer extends ClientForwardingBuildOperatio
             .ifPresent(aggregator::emit);
     }
 
+    @Override
+    public void finished(BuildOperationDescriptor buildOperation, OperationFinishEvent result) {
+        OperationIdentifier parentId = buildOperation.getParentId();
+        if (parentId == null) { // root build operation
+            try {
+                Throwable failure = result.getFailure();
+                if (failure != null) { // root build operation failed; assumption; this is the build failed exception
+                    StringWriter sw = new StringWriter();
+                    failure.printStackTrace(new PrintWriter(sw));
+                    Files.asCharSink(new java.io.File("/tmp/out"), java.nio.charset.StandardCharsets.UTF_8)
+                        .write("buildOperation: " + sw);
+
+
+                    // I can send an extra progress event here
+                    Throwable failureCauseCause = failure.getCause().getCause();
+
+                    Collection<Problem> buildFailureProblems = new ArrayList<>(problemsForThrowables.get(failureCauseCause));
+
+                    if (failureCauseCause instanceof ProblemAwareFailure) {
+                        ProblemAwareFailure paf = (ProblemAwareFailure) failureCauseCause;
+                        buildFailureProblems.addAll(paf.getProblems());
+                    }
+
+                    InternalFailure fcc = DefaultFailure.fromThrowable(failure).getCauses().get(0).getCauses().get(0);
+
+
+
+                    final String cccontextualLabel = "XXX contextual label \n" +
+                        "fcc message " + fcc.getMessage() + "\n" +
+                        "failureCauseCause " + failureCauseCause.getMessage() + "\n" +
+                        "problemsForThrowables.size(): " + problemsForThrowables.size() + "\n" +
+                        "build failure problems: " + buildFailureProblems;
+
+                    aggregator.emit(createProblemEvent(buildOperation.getId(), new Problem() {
+                        @Override
+                        public ProblemDefinition getDefinition() {
+                            return new org.gradle.api.problems.internal.DefaultProblemDefinition(
+                                new org.gradle.api.problems.internal.DefaultProblemId(
+                                    "id", "displayName",
+                                    new org.gradle.api.problems.internal.DefaultProblemGroup(
+                                        "name",
+                                        "displayName",
+                                        null
+                                    )
+                                ),
+                                Severity.ERROR,
+                                null);
+                        }
+
+                        @Nullable
+                        @Override
+                        public String getContextualLabel() {
+                            return cccontextualLabel;
+
+                        }
+
+                        @Override
+                        public List<String> getSolutions() {
+                            return new ArrayList<>();
+                        }
+
+                        @Nullable
+                        @Override
+                        public String getDetails() {
+                            return "details ";
+                        }
+
+                        @Override
+                        public List<ProblemLocation> getLocations() {
+                            return new ArrayList<>();
+                        }
+
+                        @Nullable
+                        @Override
+                        public RuntimeException getException() {
+                            return null;
+                        }
+
+                        @Nullable
+                        @Override
+                        public AdditionalData getAdditionalData() {
+                            return new GeneralData() {
+                                @Override
+                                public Map<String, String> getAsMap() {
+                                    return new HashMap<>();
+                                }
+                            };
+                        }
+
+                        @Override
+                        public InternalProblemBuilder toBuilder() {
+                            return null;
+                        }
+                    }));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+        }
+
+        super.finished(buildOperation, result);
+    }
+
     private Optional<InternalProblemEventVersion2> createProblemEvent(OperationIdentifier buildOperationId, @Nullable Object details) {
         if (details instanceof DefaultProblemProgressDetails) {
             Problem problem = ((DefaultProblemProgressDetails) details).getProblem();
+            Throwable exception = problem.getException();
+            if (exception != null) {
+                problemsForThrowables.put(exception, problem);
+            }
             return Optional.of(createProblemEvent(buildOperationId, problem));
         }
         return empty();

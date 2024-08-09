@@ -153,5 +153,6 @@ public class ToolingApiBuildEventListenerFactory implements BuildEventListenerFa
     @Override
     public void report(File reportDir, ProblemConsumer validationFailures) {
         problemAggregator.ifPresent(AggregatingProblemConsumer::sendProblemSummaries);
+        problemAggregator.ifPresent(consumer -> consumer.sendBuilFailed(validationFailures));
     }
 }
