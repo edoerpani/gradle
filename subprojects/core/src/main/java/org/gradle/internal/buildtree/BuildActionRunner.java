@@ -128,7 +128,7 @@ public interface BuildActionRunner {
             if (newFailures.size() == 1) {
                 return failed(newFailures.get(0));
             } else {
-                return failed(new MultipleBuildFailures(newFailures));
+                return failed(new MultipleBuildFailures(newFailures)); // TODO expect this
             }
         }
 

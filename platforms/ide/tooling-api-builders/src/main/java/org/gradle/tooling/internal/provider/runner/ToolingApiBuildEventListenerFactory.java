@@ -95,13 +95,16 @@ public class ToolingApiBuildEventListenerFactory implements BuildEventListenerFa
         TaskOperationMapper taskOperationMapper = new TaskOperationMapper(postProcessors, taskOriginTracker, operationDependenciesResolver);
         operationDependenciesResolver.addLookup(taskOperationMapper);
 
+        ProblemsProgressEventConsumer problemConsumer = (buildListener instanceof ProblemsProgressEventConsumer) ? (ProblemsProgressEventConsumer) buildListener : null;
+
         List<BuildOperationMapper<?, ?>> mappers = ImmutableList.of(
             new FileDownloadOperationMapper(),
             new TestOperationMapper(testTaskTracker),
             new ProjectConfigurationOperationMapper(projectConfigurationTracker),
             taskOperationMapper,
             transformOperationMapper,
-            new WorkItemOperationMapper()
+            new WorkItemOperationMapper(),
+            new RunBuildBuildOperationMapper(problemConsumer)
         );
         return new ClientBuildEventGenerator(progressEventConsumer, subscriptions, mappers, buildListener);
     }
@@ -153,6 +156,5 @@ public class ToolingApiBuildEventListenerFactory implements BuildEventListenerFa
     @Override
     public void report(File reportDir, ProblemConsumer validationFailures) {
         problemAggregator.ifPresent(AggregatingProblemConsumer::sendProblemSummaries);
-        problemAggregator.ifPresent(consumer -> consumer.sendBuilFailed(validationFailures));
     }
 }

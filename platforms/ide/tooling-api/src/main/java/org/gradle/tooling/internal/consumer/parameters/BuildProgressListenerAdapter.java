@@ -54,6 +54,7 @@ import org.gradle.tooling.events.internal.DefaultBinaryPluginIdentifier;
 import org.gradle.tooling.events.internal.DefaultFinishEvent;
 import org.gradle.tooling.events.internal.DefaultOperationDescriptor;
 import org.gradle.tooling.events.internal.DefaultOperationFailureResult;
+import org.gradle.tooling.events.internal.DefaultOperationFailureResultWithProblems;
 import org.gradle.tooling.events.internal.DefaultOperationSuccessResult;
 import org.gradle.tooling.events.internal.DefaultScriptPluginIdentifier;
 import org.gradle.tooling.events.internal.DefaultStartEvent;
@@ -172,6 +173,7 @@ import org.gradle.tooling.internal.protocol.InternalTestFrameworkFailure;
 import org.gradle.tooling.internal.protocol.events.InternalBinaryPluginIdentifier;
 import org.gradle.tooling.internal.protocol.events.InternalBuildPhaseDescriptor;
 import org.gradle.tooling.internal.protocol.events.InternalFailureResult;
+import org.gradle.tooling.internal.protocol.events.InternalFailureWithProblemsResult;
 import org.gradle.tooling.internal.protocol.events.InternalFileDownloadDescriptor;
 import org.gradle.tooling.internal.protocol.events.InternalFileDownloadResult;
 import org.gradle.tooling.internal.protocol.events.InternalIncrementalTaskResult;
@@ -1083,6 +1085,9 @@ public class BuildProgressListenerAdapter implements InternalBuildProgressListen
     private static @Nullable OperationResult toResult(InternalOperationResult result) {
         if (result instanceof InternalSuccessResult) {
             return new DefaultOperationSuccessResult(result.getStartTime(), result.getEndTime());
+        } else if (result instanceof InternalFailureWithProblemsResult) {
+            int problems = ((InternalFailureWithProblemsResult) result).getNumberOfProblemsReported();
+            return new DefaultOperationFailureResultWithProblems(result.getStartTime(), result.getEndTime(), toFailures(result.getFailures()), problems);
         } else if (result instanceof InternalFailureResult) {
             return new DefaultOperationFailureResult(result.getStartTime(), result.getEndTime(), toFailures(result.getFailures()));
         } else {

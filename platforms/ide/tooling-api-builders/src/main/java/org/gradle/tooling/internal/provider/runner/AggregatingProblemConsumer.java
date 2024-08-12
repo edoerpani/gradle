@@ -27,7 +27,6 @@ import org.gradle.internal.build.event.types.DefaultProblemDescriptor;
 import org.gradle.internal.build.event.types.DefaultProblemEvent;
 import org.gradle.internal.operations.CurrentBuildOperationRef;
 import org.gradle.internal.operations.OperationIdentifier;
-import org.gradle.problems.buildtree.ProblemReporter;
 import org.gradle.tooling.internal.protocol.InternalBasicProblemDetailsVersion3;
 import org.gradle.tooling.internal.protocol.InternalProblemAggregationVersion3;
 import org.gradle.tooling.internal.protocol.InternalProblemContextDetails;
@@ -145,9 +144,4 @@ public class AggregatingProblemConsumer {
         }
     }
 
-    public void sendBuilFailed(ProblemReporter.ProblemConsumer validationFailures) {
-
-    }
-
-    
 }
