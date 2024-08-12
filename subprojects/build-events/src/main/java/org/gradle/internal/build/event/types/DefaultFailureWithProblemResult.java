@@ -16,7 +16,7 @@
 
 package org.gradle.internal.build.event.types;
 
-import org.gradle.api.problems.internal.Problem;
+import org.gradle.tooling.internal.protocol.InternalBasicProblemDetailsVersion3;
 import org.gradle.tooling.internal.protocol.InternalFailure;
 import org.gradle.tooling.internal.protocol.events.InternalFailureWithProblemsResult;
 
@@ -25,15 +25,15 @@ import java.util.List;
 // TODO (donat) Find a better name for this class
 public class DefaultFailureWithProblemResult extends DefaultFailureResult implements InternalFailureWithProblemsResult {
 
-    final int problems;
+    final List<InternalBasicProblemDetailsVersion3> problems; // TODO (donat) Collection or list?
 
-    public DefaultFailureWithProblemResult(long startTime, long endTime, List<InternalFailure> failures, List<Problem> problems) {
+    public DefaultFailureWithProblemResult(long startTime, long endTime, List<InternalFailure> failures, List<InternalBasicProblemDetailsVersion3> problems) {
         super(startTime, endTime, failures);
-        this.problems = problems.size();
+        this.problems = problems;
     }
 
     @Override
-    public int getNumberOfProblemsReported() {
+    public List<InternalBasicProblemDetailsVersion3> getProblems() {
         return problems;
     }
 }

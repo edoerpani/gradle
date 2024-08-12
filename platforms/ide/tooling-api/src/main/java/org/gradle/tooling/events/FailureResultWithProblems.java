@@ -17,6 +17,7 @@
 package org.gradle.tooling.events;
 
 import org.gradle.tooling.Failure;
+import org.gradle.tooling.events.problems.ProblemReport;
 
 import java.util.List;
 
@@ -26,7 +27,7 @@ import java.util.List;
  * @since 2.4
  */
 public interface FailureResultWithProblems extends OperationResult {
-
+    // TODO (donat) rename?
     /**
      * Returns the failures that occurred while running the operation, if any.
      *
@@ -34,6 +35,6 @@ public interface FailureResultWithProblems extends OperationResult {
      */
     List<? extends Failure> getFailures();
 
-    int getProblems();
+    List<ProblemReport> getProblems();
 
 }

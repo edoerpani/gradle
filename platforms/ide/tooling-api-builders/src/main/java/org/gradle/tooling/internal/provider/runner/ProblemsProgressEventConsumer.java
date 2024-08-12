@@ -88,7 +88,7 @@ public class ProblemsProgressEventConsumer extends ClientForwardingBuildOperatio
     private final Supplier<OperationIdentifier> operationIdentifierSupplier;
     private final AggregatingProblemConsumer aggregator;
 
-    // TODO (donat) How can we deduplicate the data that we accumulate here and in DefaultProblems?
+    // TODO (donat) We already cache a subset of problems in AggregatingProblemConsumer; we should look into how to avoid this duplication
     private final Multimap<Throwable, Problem> problemsForThrowables = Multimaps.synchronizedMultimap(HashMultimap.<Throwable, Problem>create());
 
     ProblemsProgressEventConsumer(ProgressEventConsumer progressEventConsumer, Supplier<OperationIdentifier> operationIdentifierSupplier, AggregatingProblemConsumer aggregator) {
@@ -123,15 +123,7 @@ public class ProblemsProgressEventConsumer extends ClientForwardingBuildOperatio
     private InternalProblemEventVersion2 createProblemEvent(OperationIdentifier buildOperationId, Problem problem) {
         return new DefaultProblemEvent(
             createDefaultProblemDescriptor(buildOperationId),
-            new DefaultProblemDetails(
-                toInternalDefinition(problem.getDefinition()),
-                toInternalDetails(problem.getDetails()),
-                toInternalContextualLabel(problem.getContextualLabel()),
-                toInternalLocations(problem.getLocations()),
-                toInternalSolutions(problem.getSolutions()),
-                toInternalAdditionalData(problem.getAdditionalData()),
-                toInternalFailure(problem.getException())
-            )
+            createDefaultProblemDetails(problem)
         );
     }
 
@@ -147,6 +139,18 @@ public class ProblemsProgressEventConsumer extends ClientForwardingBuildOperatio
         return new DefaultProblemDescriptor(
             operationIdentifierSupplier.get(),
             parentBuildOperationId);
+    }
+
+    static DefaultProblemDetails createDefaultProblemDetails(Problem problem) {
+        return new DefaultProblemDetails(
+            toInternalDefinition(problem.getDefinition()),
+            toInternalDetails(problem.getDetails()),
+            toInternalContextualLabel(problem.getContextualLabel()),
+            toInternalLocations(problem.getLocations()),
+            toInternalSolutions(problem.getSolutions()),
+            toInternalAdditionalData(problem.getAdditionalData()),
+            toInternalFailure(problem.getException())
+        );
     }
 
     private static InternalProblemDefinition toInternalDefinition(ProblemDefinition definition) {

@@ -31,6 +31,7 @@ import org.gradle.internal.operations.OperationIdentifier;
 import org.gradle.internal.operations.OperationStartEvent;
 import org.gradle.launcher.exec.RunBuildBuildOperationType;
 import org.gradle.tooling.events.OperationType;
+import org.gradle.tooling.internal.protocol.InternalBasicProblemDetailsVersion3;
 import org.gradle.tooling.internal.protocol.events.InternalOperationFinishedProgressEvent;
 import org.gradle.tooling.internal.protocol.events.InternalOperationStartedProgressEvent;
 
@@ -38,6 +39,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 class RunBuildBuildOperationMapper implements BuildOperationMapper<RunBuildBuildOperationType.Details, DefaultBuildBuildDescriptor> {
 
@@ -79,7 +81,8 @@ class RunBuildBuildOperationMapper implements BuildOperationMapper<RunBuildBuild
         long endTime = result.getEndTime();
         if (failure != null) {
             List<Problem> problems = new ArrayList<>(problemConsumer.getProblemsForThrowable().values());
-            return new DefaultFailureWithProblemResult(startTime, endTime, Collections.singletonList(DefaultFailure.fromThrowable(failure)), problems);
+            List<InternalBasicProblemDetailsVersion3> protocolProblems = problems.stream().map(ProblemsProgressEventConsumer::createDefaultProblemDetails).collect(Collectors.toList());
+            return new DefaultFailureWithProblemResult(startTime, endTime, Collections.singletonList(DefaultFailure.fromThrowable(failure)), protocolProblems);
         }
         return new DefaultSuccessResult(startTime, endTime);
     }

@@ -18,6 +18,7 @@ package org.gradle.tooling.events.internal;
 
 import org.gradle.tooling.Failure;
 import org.gradle.tooling.events.FailureResultWithProblems;
+import org.gradle.tooling.events.problems.ProblemReport;
 
 import java.util.List;
 
@@ -25,13 +26,13 @@ import java.util.List;
  * Implementation of the {@code BuildFailureResult} interface.
  */
 public class DefaultOperationFailureResultWithProblems implements FailureResultWithProblems {
-
+    // TODO (donat) rename?
     private final long startTime;
     private final long endTime;
     private final List<? extends Failure> failures;
-    private final int problems;
+    private final List<ProblemReport> problems;
 
-    public DefaultOperationFailureResultWithProblems(long startTime, long endTime, List<? extends Failure> failures, int problems) {
+    public DefaultOperationFailureResultWithProblems(long startTime, long endTime, List<? extends Failure> failures, List<ProblemReport> problems) {
         this.startTime = startTime;
         this.endTime = endTime;
         this.failures = failures;
@@ -54,7 +55,7 @@ public class DefaultOperationFailureResultWithProblems implements FailureResultW
     }
 
     @Override
-    public int getProblems() {
+    public List<ProblemReport> getProblems() {
         return problems;
     }
 }

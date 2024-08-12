@@ -77,6 +77,7 @@ import org.gradle.tooling.events.problems.ProblemDefinition;
 import org.gradle.tooling.events.problems.ProblemEvent;
 import org.gradle.tooling.events.problems.ProblemGroup;
 import org.gradle.tooling.events.problems.ProblemId;
+import org.gradle.tooling.events.problems.ProblemReport;
 import org.gradle.tooling.events.problems.Severity;
 import org.gradle.tooling.events.problems.Solution;
 import org.gradle.tooling.events.problems.internal.DefaultContextualLabel;
@@ -92,6 +93,7 @@ import org.gradle.tooling.events.problems.internal.DefaultProblemAggregationEven
 import org.gradle.tooling.events.problems.internal.DefaultProblemDefinition;
 import org.gradle.tooling.events.problems.internal.DefaultProblemGroup;
 import org.gradle.tooling.events.problems.internal.DefaultProblemId;
+import org.gradle.tooling.events.problems.internal.DefaultProblemReport;
 import org.gradle.tooling.events.problems.internal.DefaultProblemsOperationContext;
 import org.gradle.tooling.events.problems.internal.DefaultSeverity;
 import org.gradle.tooling.events.problems.internal.DefaultSingleProblemEvent;
@@ -1086,8 +1088,14 @@ public class BuildProgressListenerAdapter implements InternalBuildProgressListen
         if (result instanceof InternalSuccessResult) {
             return new DefaultOperationSuccessResult(result.getStartTime(), result.getEndTime());
         } else if (result instanceof InternalFailureWithProblemsResult) {
-            int problems = ((InternalFailureWithProblemsResult) result).getNumberOfProblemsReported();
-            return new DefaultOperationFailureResultWithProblems(result.getStartTime(), result.getEndTime(), toFailures(result.getFailures()), problems);
+            List<InternalBasicProblemDetailsVersion3> problems = ((InternalFailureWithProblemsResult) result).getProblems();
+            // TODO (donat) MUST CONVERT to internalproblems
+            List<ProblemReport> problemReports = new ArrayList<>(problems.size());
+            for (InternalBasicProblemDetailsVersion3 problem : ((InternalFailureWithProblemsResult) result).getProblems()) {
+                problemReports.add(createproblemReport(problem));
+            }
+            DefaultOperationFailureResultWithProblems defaultOperationFailureResultWithProblems = new DefaultOperationFailureResultWithProblems(result.getStartTime(), result.getEndTime(), toFailures(result.getFailures()), problemReports);
+            return defaultOperationFailureResultWithProblems;
         } else if (result instanceof InternalFailureResult) {
             return new DefaultOperationFailureResult(result.getStartTime(), result.getEndTime(), toFailures(result.getFailures()));
         } else {
@@ -1145,6 +1153,18 @@ public class BuildProgressListenerAdapter implements InternalBuildProgressListen
             origFailure.getMessage(),
             origFailure.getDescription(),
             toFailures(origFailure.getCauses()));
+    }
+
+    private static ProblemReport createproblemReport(InternalBasicProblemDetailsVersion3 basicProblemDetails) {
+        return new DefaultProblemReport(
+            toProblemDefinition(basicProblemDetails.getDefinition()),
+            toContextualLabel(basicProblemDetails.getContextualLabel()),
+            toProblemDetails(basicProblemDetails.getDetails()),
+            toLocations(basicProblemDetails.getLocations()),
+            toSolutions(basicProblemDetails.getSolutions()),
+            toAdditionalData(basicProblemDetails.getAdditionalData()),
+            toFailureContainer(basicProblemDetails)
+        );
     }
 
     private static @Nullable List<AnnotationProcessorResult> toAnnotationProcessorResults(@Nullable List<InternalAnnotationProcessorResult> protocolResults) {
