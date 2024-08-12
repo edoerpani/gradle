@@ -25,8 +25,6 @@ import javax.tools.JavaFileObject
 
 class DiagnosticToProblemListenerTest extends Specification {
 
-    private static final String DIAGNOSTIC_DETAIL = "Error detail line 1\nerror detail line 2"
-
     def spec = Mock(InternalProblemSpec) {
         // We report the formatted message in all cases
         1 * additionalData(org.gradle.api.problems.internal.GeneralDataSpec, _)
@@ -37,7 +35,6 @@ class DiagnosticToProblemListenerTest extends Specification {
     def "file location is correctly reported"() {
         given:
         def diagnostic = Mock(Diagnostic)
-        diagnostic.getMessage(_) >> DIAGNOSTIC_DETAIL
         diagnostic.kind >> Diagnostic.Kind.ERROR
         diagnostic.source >> Mock(JavaFileObject) {
             name >> "SomeFile.java"
@@ -58,7 +55,6 @@ class DiagnosticToProblemListenerTest extends Specification {
     def "file location, and line is correctly reported"() {
         given:
         def diagnostic = Mock(Diagnostic)
-        diagnostic.getMessage(_) >> DIAGNOSTIC_DETAIL
         diagnostic.kind >> Diagnostic.Kind.ERROR
         diagnostic.source >> Mock(JavaFileObject) {
             name >> "SomeFile.java"
@@ -81,7 +77,6 @@ class DiagnosticToProblemListenerTest extends Specification {
     def "file location, line, and column is correctly reported"() {
         given:
         def diagnostic = Mock(Diagnostic)
-        diagnostic.getMessage(_) >> DIAGNOSTIC_DETAIL
         diagnostic.kind >> Diagnostic.Kind.ERROR
         diagnostic.source >> Mock(JavaFileObject) {
             name >> "SomeFile.java"
@@ -106,7 +101,6 @@ class DiagnosticToProblemListenerTest extends Specification {
     def "when only start defined, no offset or slice location is reported"() {
         given:
         def diagnostic = Mock(Diagnostic)
-        diagnostic.getMessage(_) >> DIAGNOSTIC_DETAIL
         diagnostic.kind >> Diagnostic.Kind.ERROR
         diagnostic.source >> Mock(JavaFileObject) {
             name >> "SomeFile.java"
@@ -133,7 +127,6 @@ class DiagnosticToProblemListenerTest extends Specification {
     def "when only the end is defined, no offset or slice location is reported"() {
         given:
         def diagnostic = Mock(Diagnostic)
-        diagnostic.getMessage(_) >> DIAGNOSTIC_DETAIL
         diagnostic.kind >> Diagnostic.Kind.ERROR
         diagnostic.source >> Mock(JavaFileObject) {
             name >> "SomeFile.java"
@@ -160,7 +153,6 @@ class DiagnosticToProblemListenerTest extends Specification {
     def "when both start, position, and end are defined, an offset location is reported"() {
         given:
         def diagnostic = Mock(Diagnostic)
-        diagnostic.getMessage(_) >> DIAGNOSTIC_DETAIL
         diagnostic.kind >> Diagnostic.Kind.ERROR
         diagnostic.source >> Mock(JavaFileObject) {
             name >> "SomeFile.java"

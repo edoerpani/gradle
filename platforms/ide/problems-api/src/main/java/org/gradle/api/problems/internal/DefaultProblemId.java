@@ -49,20 +49,6 @@ public class DefaultProblemId implements ProblemId, Serializable {
     }
 
     @Override
-    public String toString() {
-        return groupPath(getGroup()) + getName();
-    }
-
-    static String groupPath(ProblemGroup group) {
-        ProblemGroup parent = group.getParent();
-        if (parent == null) {
-            return group.getName();
-        } else {
-            return groupPath(parent) + ":" + group.getName();
-        }
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
