@@ -26,19 +26,21 @@ dependencies {
     api(libs.jsr305)
     api(libs.maven3Settings)
 
-    api(projects.stdlibJavaExtensions)
-    api(projects.serviceProvider)
     api(projects.baseServices)
+    api(projects.buildInitSpecs)
     api(projects.core)
     api(projects.coreApi)
+    api(projects.daemonServices)
     api(projects.dependencyManagement)
     api(projects.fileCollections)
     api(projects.logging)
     api(projects.platformJvm)
+    api(projects.serviceProvider)
+    api(projects.stdlibJavaExtensions)
     api(projects.toolchainsJvmShared)
     api(projects.workers)
-    api(projects.daemonServices)
 
+    implementation(projects.buildInitSpecsApi)
     implementation(projects.loggingApi)
     implementation(projects.platformNative)
     implementation(projects.pluginsApplication) {
@@ -116,4 +118,11 @@ integTest.testJvmXmx = "1g"
 
 tasks.isolatedProjectsIntegTest {
     enabled = true
+}
+
+// Needed for tests including the D-G project, which requires Java 17 for AGP
+tasks.withType<Test>() {
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
 }
