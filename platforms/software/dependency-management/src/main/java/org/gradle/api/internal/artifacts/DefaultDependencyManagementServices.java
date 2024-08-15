@@ -68,6 +68,7 @@ import org.gradle.api.internal.artifacts.ivyservice.projectmodule.ProjectDepende
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.DependencyGraphResolver;
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.artifact.ResolvedArtifactSetResolver;
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.artifact.ResolvedVariantCache;
+import org.gradle.api.internal.artifacts.ivyservice.resolveengine.graph.builder.DependencyGraphBuilder;
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.result.AdhocHandlingComponentResultSerializer;
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.result.AttributeContainerSerializer;
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.result.ComponentSelectionDescriptorFactory;
@@ -81,7 +82,6 @@ import org.gradle.api.internal.artifacts.repositories.ResolutionAwareRepository;
 import org.gradle.api.internal.artifacts.repositories.metadata.IvyMutableModuleMetadataFactory;
 import org.gradle.api.internal.artifacts.repositories.metadata.MavenMutableModuleMetadataFactory;
 import org.gradle.api.internal.artifacts.repositories.transport.RepositoryTransportFactory;
-import org.gradle.api.internal.artifacts.transform.ConsumerProvidedVariantFinder;
 import org.gradle.api.internal.artifacts.transform.DefaultTransformInvocationFactory;
 import org.gradle.api.internal.artifacts.transform.DefaultTransformRegistrationFactory;
 import org.gradle.api.internal.artifacts.transform.DefaultTransformedVariantFactory;
@@ -98,7 +98,9 @@ import org.gradle.api.internal.artifacts.transform.TransformRegistrationFactory;
 import org.gradle.api.internal.artifacts.transform.VariantSelectorFactory;
 import org.gradle.api.internal.artifacts.type.ArtifactTypeRegistry;
 import org.gradle.api.internal.artifacts.type.DefaultArtifactTypeRegistry;
+import org.gradle.api.internal.attributes.AttributeSchemaServiceFactory;
 import org.gradle.api.internal.attributes.AttributesSchemaInternal;
+import org.gradle.api.internal.attributes.ConfigurableAttributeDescribers;
 import org.gradle.api.internal.attributes.DefaultAttributesSchema;
 import org.gradle.api.internal.attributes.ImmutableAttributesFactory;
 import org.gradle.api.internal.file.FileCollectionFactory;
@@ -121,7 +123,6 @@ import org.gradle.internal.buildoption.InternalOptions;
 import org.gradle.internal.component.external.model.JavaEcosystemVariantDerivationStrategy;
 import org.gradle.internal.component.external.model.ModuleComponentArtifactMetadata;
 import org.gradle.internal.component.model.GraphVariantSelector;
-import org.gradle.internal.component.resolution.failure.ResolutionFailureDescriberRegistry;
 import org.gradle.internal.component.resolution.failure.ResolutionFailureHandler;
 import org.gradle.internal.event.ListenerManager;
 import org.gradle.internal.execution.ExecutionEngine;
@@ -223,16 +224,17 @@ public class DefaultDependencyManagementServices implements DependencyManagement
             registration.add(ResolutionStrategyFactory.class);
             registration.add(DefaultLocalComponentRegistry.class);
             registration.add(ProjectDependencyResolver.class);
-            registration.add(ConsumerProvidedVariantFinder.class);
             registration.add(DefaultVariantSelectorFactory.class);
             registration.add(DefaultConfigurationFactory.class);
             registration.add(DefaultComponentSelectorConverter.class);
             registration.add(DefaultArtifactResolutionQueryFactory.class);
+            registration.add(DependencyGraphBuilder.class);
+            registration.add(DependencyGraphResolver.class);
         }
 
         @Provides
         AttributesSchemaInternal createConfigurationAttributesSchema(InstantiatorFactory instantiatorFactory, IsolatableFactory isolatableFactory, PlatformSupport platformSupport, ServiceRegistry serviceRegistry) {
-            DefaultAttributesSchema attributesSchema = instantiatorFactory.decorateLenient().newInstance(DefaultAttributesSchema.class, instantiatorFactory.inject(serviceRegistry), isolatableFactory);
+            DefaultAttributesSchema attributesSchema = instantiatorFactory.decorateLenient().newInstance(DefaultAttributesSchema.class, instantiatorFactory, isolatableFactory);
             platformSupport.configureSchema(attributesSchema);
             GradlePluginVariantsSupport.configureSchema(attributesSchema);
             return attributesSchema;
@@ -535,13 +537,16 @@ public class DefaultDependencyManagementServices implements DependencyManagement
         @Provides
         ResolutionFailureHandler createResolutionFailureProcessor(InstantiatorFactory instantiatorFactory, ServiceRegistry serviceRegistry, InternalProblems problemsService) {
             InstanceGenerator instanceGenerator = instantiatorFactory.inject(serviceRegistry);
-            ResolutionFailureDescriberRegistry failureDescriberRegistry = ResolutionFailureDescriberRegistry.standardRegistry(instanceGenerator);
-            return new ResolutionFailureHandler(failureDescriberRegistry, problemsService);
+
+            ResolutionFailureHandler handler = new ResolutionFailureHandler(instanceGenerator, problemsService);
+            GradlePluginVariantsSupport.configureFailureHandler(handler);
+            PlatformSupport.configureFailureHandler(handler);
+            return handler;
         }
 
         @Provides
-        GraphVariantSelector createGraphVariantSelector(ResolutionFailureHandler resolutionFailureHandler) {
-            return new GraphVariantSelector(resolutionFailureHandler);
+        GraphVariantSelector createGraphVariantSelector(AttributeSchemaServiceFactory attributeSchemaServices, ResolutionFailureHandler resolutionFailureHandler) {
+            return new GraphVariantSelector(attributeSchemaServices, resolutionFailureHandler);
         }
 
         @Provides
@@ -551,7 +556,6 @@ public class DefaultDependencyManagementServices implements DependencyManagement
             GlobalDependencyResolutionRules metadataHandler,
             ResolutionResultsStoreFactory resolutionResultsStoreFactory,
             StartParameter startParameter,
-            AttributesSchemaInternal attributesSchema,
             VariantSelectorFactory variantSelectorFactory,
             ImmutableModuleIdentifierFactory moduleIdentifierFactory,
             BuildOperationExecutor buildOperationExecutor,
@@ -578,7 +582,6 @@ public class DefaultDependencyManagementServices implements DependencyManagement
                 metadataHandler,
                 resolutionResultsStoreFactory,
                 startParameter,
-                attributesSchema,
                 variantSelectorFactory,
                 moduleIdentifierFactory,
                 buildOperationExecutor,
@@ -685,6 +688,11 @@ public class DefaultDependencyManagementServices implements DependencyManagement
         @Override
         public DependencyFactory getDependencyFactory() {
             return services.get(DependencyFactory.class);
+        }
+
+        @Override
+        public ConfigurableAttributeDescribers getAttributeDescribers() {
+            return services.get(ResolutionFailureHandler.class);
         }
     }
 

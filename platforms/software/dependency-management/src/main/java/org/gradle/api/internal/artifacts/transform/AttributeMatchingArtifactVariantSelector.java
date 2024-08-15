@@ -19,16 +19,18 @@ package org.gradle.api.internal.artifacts.transform;
 import com.google.common.collect.ImmutableList;
 import org.gradle.api.attributes.Attribute;
 import org.gradle.api.attributes.HasAttributes;
+import org.gradle.api.internal.artifacts.VariantTransformRegistry;
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.artifact.BrokenResolvedArtifactSet;
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.artifact.ResolvedArtifactSet;
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.artifact.ResolvedVariant;
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.artifact.ResolvedVariantSet;
 import org.gradle.api.internal.attributes.AttributeContainerInternal;
+import org.gradle.api.internal.attributes.AttributeSchemaServiceFactory;
 import org.gradle.api.internal.attributes.AttributeValue;
-import org.gradle.api.internal.attributes.AttributesSchemaInternal;
 import org.gradle.api.internal.attributes.ImmutableAttributes;
 import org.gradle.api.internal.attributes.ImmutableAttributesFactory;
-import org.gradle.internal.component.model.AttributeMatcher;
+import org.gradle.api.internal.attributes.immutable.ImmutableAttributesSchema;
+import org.gradle.api.internal.attributes.matching.AttributeMatcher;
 import org.gradle.internal.component.model.AttributeMatchingExplanationBuilder;
 import org.gradle.internal.component.resolution.failure.ResolutionFailureHandler;
 
@@ -47,24 +49,28 @@ import java.util.Set;
  * to allow the caller to handle failures in a consistent manner as during graph variant selection.
  */
 public class AttributeMatchingArtifactVariantSelector implements ArtifactVariantSelector {
-    private final ConsumerProvidedVariantFinder consumerProvidedVariantFinder;
-    private final AttributesSchemaInternal schema;
+
+    private final VariantTransformRegistry transformRegistry;
+    private final ImmutableAttributesSchema consumerSchema;
     private final ImmutableAttributesFactory attributesFactory;
+    private final AttributeSchemaServiceFactory attributeSchemaServices;
     private final TransformedVariantFactory transformedVariantFactory;
     private final TransformUpstreamDependenciesResolverFactory dependenciesResolverFactory;
     private final ResolutionFailureHandler failureProcessor;
 
     AttributeMatchingArtifactVariantSelector(
-        ConsumerProvidedVariantFinder consumerProvidedVariantFinder,
-        AttributesSchemaInternal schema,
+        VariantTransformRegistry transformRegistry,
+        ImmutableAttributesSchema consumerSchema,
         ImmutableAttributesFactory attributesFactory,
+        AttributeSchemaServiceFactory attributeSchemaServices,
         TransformedVariantFactory transformedVariantFactory,
         TransformUpstreamDependenciesResolverFactory dependenciesResolverFactory,
         ResolutionFailureHandler failureProcessor
     ) {
-        this.consumerProvidedVariantFinder = consumerProvidedVariantFinder;
-        this.schema = schema;
+        this.transformRegistry = transformRegistry;
+        this.consumerSchema = consumerSchema;
         this.attributesFactory = attributesFactory;
+        this.attributeSchemaServices = attributeSchemaServices;
         this.transformedVariantFactory = transformedVariantFactory;
         this.dependenciesResolverFactory = dependenciesResolverFactory;
         this.failureProcessor = failureProcessor;
@@ -75,12 +81,12 @@ public class AttributeMatchingArtifactVariantSelector implements ArtifactVariant
         try {
             return doSelect(producer, allowNoMatchingVariants, resolvedArtifactTransformer, AttributeMatchingExplanationBuilder.logging(), requestAttributes);
         } catch (Exception t) {
-            return new BrokenResolvedArtifactSet(failureProcessor.unknownArtifactVariantSelectionFailure(schema, producer, requestAttributes, t));
+            return new BrokenResolvedArtifactSet(failureProcessor.unknownArtifactVariantSelectionFailure(producer, requestAttributes, t));
         }
     }
 
     private ResolvedArtifactSet doSelect(ResolvedVariantSet producer, boolean allowNoMatchingVariants, ResolvedArtifactTransformer resolvedArtifactTransformer, AttributeMatchingExplanationBuilder explanationBuilder, ImmutableAttributes requestAttributes) {
-        AttributeMatcher matcher = schema.withProducer(producer.getSchema());
+        AttributeMatcher matcher = attributeSchemaServices.getMatcher(consumerSchema, producer.getSchema());
         ImmutableAttributes componentRequested = attributesFactory.concat(requestAttributes, producer.getOverriddenAttributes());
         final List<ResolvedVariant> variants = ImmutableList.copyOf(producer.getVariants());
 
@@ -91,11 +97,11 @@ public class AttributeMatchingArtifactVariantSelector implements ArtifactVariant
             // Request is ambiguous. Rerun matching again, except capture an explanation this time for reporting.
             TraceDiscardedVariants newExpBuilder = new TraceDiscardedVariants();
             matches = matcher.matchMultipleCandidates(variants, componentRequested, newExpBuilder);
-            throw failureProcessor.ambiguousArtifactsFailure(schema, matcher, producer, componentRequested, matches);
+            throw failureProcessor.ambiguousArtifactsFailure(matcher, producer, componentRequested, matches);
         }
 
         // We found no matches. Attempt to construct artifact transform chains which produce matching variants.
-        List<TransformedVariant> transformedVariants = consumerProvidedVariantFinder.findTransformedVariants(variants, componentRequested);
+        List<TransformedVariant> transformedVariants = attributeSchemaServices.getTransformSelector(matcher).findTransformedVariants(transformRegistry, variants, componentRequested);
 
         // If there are multiple potential artifact transform variants, perform attribute matching to attempt to find the best.
         if (transformedVariants.size() > 1) {
@@ -108,14 +114,14 @@ public class AttributeMatchingArtifactVariantSelector implements ArtifactVariant
         }
 
         if (!transformedVariants.isEmpty()) {
-            throw failureProcessor.ambiguousArtifactTransformsFailure(schema, producer, componentRequested, transformedVariants);
+            throw failureProcessor.ambiguousArtifactTransformsFailure(producer, componentRequested, transformedVariants);
         }
 
         if (allowNoMatchingVariants) {
             return ResolvedArtifactSet.EMPTY;
         }
 
-        throw failureProcessor.noCompatibleArtifactFailure(schema, matcher, producer, componentRequested, variants);
+        throw failureProcessor.noCompatibleArtifactFailure(matcher, producer, componentRequested, variants);
     }
 
     /**

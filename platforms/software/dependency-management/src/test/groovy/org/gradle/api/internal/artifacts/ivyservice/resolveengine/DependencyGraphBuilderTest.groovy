@@ -46,12 +46,11 @@ import org.gradle.api.internal.artifacts.ivyservice.resolveengine.graph.RootGrap
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.graph.builder.DependencyGraphBuilder
 import org.gradle.api.internal.artifacts.publish.DefaultPublishArtifact
 import org.gradle.api.internal.attributes.AttributeDesugaring
-import org.gradle.api.internal.attributes.AttributesSchemaInternal
 import org.gradle.api.internal.attributes.ImmutableAttributes
+import org.gradle.api.internal.attributes.immutable.ImmutableAttributesSchema
 import org.gradle.api.problems.internal.InternalProblems
 import org.gradle.api.specs.Spec
 import org.gradle.internal.Describables
-import org.gradle.internal.component.resolution.failure.ResolutionFailureHandler
 import org.gradle.internal.component.external.descriptor.DefaultExclude
 import org.gradle.internal.component.external.model.DefaultModuleComponentIdentifier
 import org.gradle.internal.component.external.model.ImmutableCapabilities
@@ -71,6 +70,7 @@ import org.gradle.internal.component.model.GraphVariantSelector
 import org.gradle.internal.component.model.IvyArtifactName
 import org.gradle.internal.component.model.LocalComponentDependencyMetadata
 import org.gradle.internal.component.model.LocalOriginDependencyMetadata
+import org.gradle.internal.component.resolution.failure.ResolutionFailureHandler
 import org.gradle.internal.exceptions.DefaultMultiCauseException
 import org.gradle.internal.model.CalculatedValue
 import org.gradle.internal.operations.BuildOperationExecutor
@@ -93,7 +93,7 @@ class DependencyGraphBuilderTest extends Specification {
     def conflictResolver = Mock(ModuleConflictResolver)
     def idResolver = Mock(DependencyToComponentIdResolver)
     def metaDataResolver = Mock(ComponentMetaDataResolver)
-    def attributesSchema = Mock(AttributesSchemaInternal)
+    def attributesSchema = ImmutableAttributesSchema.EMPTY
     def attributes = ImmutableAttributes.EMPTY
     def moduleReplacements = Mock(ModuleReplacementsData)
     def moduleIdentifierFactory = Mock(ImmutableModuleIdentifierFactory) {
@@ -132,12 +132,12 @@ class DependencyGraphBuilderTest extends Specification {
         TestUtil.calculatedValueContainerFactory()
     )
 
-    def failureDescriberRegistry = DependencyManagementTestUtil.standardResolutionFailureDescriberRegistry()
-    def variantSelector = new GraphVariantSelector(new ResolutionFailureHandler(failureDescriberRegistry, Stub(InternalProblems)))
+    def variantSelector = new GraphVariantSelector(AttributeTestUtil.serviceFactory(), new ResolutionFailureHandler(TestUtil.instantiatorFactory().inject(TestUtil.services()), Stub(InternalProblems)))
 
     DependencyGraphBuilder builder = new DependencyGraphBuilder(
         moduleExclusions,
         AttributeTestUtil.attributesFactory(),
+        AttributeTestUtil.serviceFactory(),
         desugaring,
         versionSelectorScheme,
         versionComparator,
@@ -153,6 +153,7 @@ class DependencyGraphBuilderTest extends Specification {
         getRootVariant() >> root.getConfigurationLegacy('root')
         getComponentIdentifier() >> root.id
         getModuleVersionIdentifier() >> root.moduleVersionId
+        getAttributesSchema() >> attributesSchema
     }
 
     private TestGraphVisitor resolve(Spec<? super DependencyMetadata> edgeFilter = { true }) {
@@ -161,7 +162,6 @@ class DependencyGraphBuilderTest extends Specification {
             rootComponent,
             [],
             edgeFilter,
-            attributesSchema,
             componentSelectorConverter,
             idResolver,
             metaDataResolver,
