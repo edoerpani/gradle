@@ -29,6 +29,13 @@ class JsonWriter(private val writer: Writer) {
         endObject()
     }
 
+    private fun jsonListItem(body: () -> Unit) {
+        elementSeparator()
+        increaseLevel()
+        body()
+        decreaseLevel()
+    }
+
     fun beginObject() {
         increaseLevel()
         write('{')
@@ -137,7 +144,9 @@ class JsonWriter(private val writer: Writer) {
     fun <T> jsonList(list: Iterator<T>, body: (T) -> Unit) {
         beginArray()
         list.forEach {
-            body(it)
+            jsonListItem {
+                body(it)
+            }
         }
         endArray()
     }

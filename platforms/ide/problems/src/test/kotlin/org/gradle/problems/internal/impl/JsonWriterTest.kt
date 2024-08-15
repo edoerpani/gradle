@@ -54,6 +54,58 @@ class JsonWriterTest {
         )
     }
 
+    @Test
+    fun `writer produces valid JSON with zero items in list`() {
+        assertThat(
+            jsonModelFor {
+                jsonObject {
+                    property("solutions") {
+                        jsonList(listOf<String>().iterator()) { solution ->
+                            writeStructuredMessage(
+                                StructuredMessage.Builder()
+                                    .text(solution).build()
+                            )
+                        }
+                    }
+                }
+            },
+            hasEntry(
+                "solutions",
+                listOf<String>(
+                )
+            )
+        )
+    }
+
+    @Test
+    fun `writer produces valid JSON with multiple items in list`() {
+        assertThat(
+            jsonModelFor {
+                jsonObject {
+                    property("solutions") {
+                        jsonList(listOf("first", "second").iterator()) { solution ->
+                            writeStructuredMessage(
+                                StructuredMessage.Builder()
+                                    .text(solution).build()
+                            )
+                        }
+                    }
+                }
+            },
+            hasEntry(
+                "solutions",
+                listOf(
+                    listOf(
+                        mapOf("text" to "first")
+                    ),
+                    listOf(
+                        mapOf("text" to "second")
+                    )
+                )
+            )
+        )
+    }
+
     private
     fun jsonModelFor(builder: JsonWriter.() -> Unit): Map<String, Any> {
         return JsonSlurper().parseText(
