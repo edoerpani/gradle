@@ -78,6 +78,7 @@ class JsonWriter(private val writer: Writer) {
         jsonObjectList(list.iterator(), body)
     }
 
+    private
     fun <T> jsonObjectList(list: Iterator<T>, body: (T) -> Unit) {
         jsonList(list) {
             jsonObject {
