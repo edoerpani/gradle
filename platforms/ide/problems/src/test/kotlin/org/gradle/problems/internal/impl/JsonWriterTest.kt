@@ -29,16 +29,13 @@ import java.io.StringWriter
 class JsonWriterTest {
 
     @Test
-    fun `writer produces valid multilevel JSON`() {
+    fun `can produce valid multilevel json`() {
         assertThat(
             jsonModelFor {
                 jsonObject {
                     property("solutions") {
-                        jsonList(listOf("solo").iterator()) { solution ->
-                            writeStructuredMessage(
-                                StructuredMessage.Builder()
-                                    .text(solution).build()
-                            )
+                        jsonList(listOf("solo")) { solution ->
+                            writeStructuredMessage(StructuredMessage.Builder().text(solution).build())
                         }
                     }
                 }
@@ -55,39 +52,52 @@ class JsonWriterTest {
     }
 
     @Test
-    fun `writer produces valid JSON with zero items in list`() {
+    fun `no entries in list`() {
         assertThat(
             jsonModelFor {
                 jsonObject {
                     property("solutions") {
-                        jsonList(listOf<String>().iterator()) { solution ->
-                            writeStructuredMessage(
-                                StructuredMessage.Builder()
-                                    .text(solution).build()
-                            )
+                        jsonList(listOf<String>()) { solution ->
+                            writeStructuredMessage(StructuredMessage.Builder().text(solution).build())
+                        }
+                    }
+                }
+            },
+            hasEntry("solutions",listOf<String>())
+        )
+    }
+
+    @Test
+    fun `single entry in list`() {
+        assertThat(
+            jsonModelFor {
+                jsonObject {
+                    property("solutions") {
+                        jsonList(listOf("one")) { solution ->
+                            writeStructuredMessage(StructuredMessage.Builder().text(solution).build())
                         }
                     }
                 }
             },
             hasEntry(
                 "solutions",
-                listOf<String>(
+                listOf(
+                    listOf(
+                        mapOf("text" to "one")
+                    )
                 )
             )
         )
     }
 
     @Test
-    fun `writer produces valid JSON with multiple items in list`() {
+    fun `multiple entries in list`() {
         assertThat(
             jsonModelFor {
                 jsonObject {
                     property("solutions") {
-                        jsonList(listOf("first", "second").iterator()) { solution ->
-                            writeStructuredMessage(
-                                StructuredMessage.Builder()
-                                    .text(solution).build()
-                            )
+                        jsonList(listOf("first", "second")) { solution ->
+                            writeStructuredMessage(StructuredMessage.Builder().text(solution).build())
                         }
                     }
                 }
@@ -101,6 +111,65 @@ class JsonWriterTest {
                     listOf(
                         mapOf("text" to "second")
                     )
+                )
+            )
+        )
+    }
+
+    @Test
+    fun `no entries in object list`() {
+        assertThat(
+            jsonModelFor {
+                jsonObject {
+                    property("solutions") {
+                        jsonObjectList(listOf<String>()) { solution ->
+                            writeStructuredMessage(StructuredMessage.Builder().text(solution).build())
+                        }
+                    }
+                }
+            },
+            hasEntry("solutions",listOf<String>())
+        )
+    }
+
+    @Test
+    fun `single entry in object list`() {
+        assertThat(
+            jsonModelFor {
+                jsonObject {
+                    property("solutions") {
+                        jsonObjectList(listOf("solo")) { solution ->
+                            property("text", solution)
+                        }
+                    }
+                }
+            },
+            hasEntry(
+                "solutions",
+                listOf(
+                    mapOf("text" to "solo")
+                )
+            )
+        )
+    }
+
+    @Test
+    fun `multiple entries in object list`() {
+        assertThat(
+            jsonModelFor {
+                jsonObject {
+                    property("solutions") {
+                        jsonObjectList(listOf("first", "second")) { solution ->
+                            property("text", solution)
+                        }
+                    }
+                }
+            },
+            hasEntry(
+                "solutions",
+                listOf(
+                    mapOf("text" to "first"),
+                    mapOf("text" to "second")
                 )
             )
         )
