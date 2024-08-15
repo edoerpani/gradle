@@ -41,13 +41,13 @@ import spock.lang.Specification
  */
 class JavaEcosystemAttributeMatcherTest extends Specification {
 
-    def matcher = newMatcher()
-    def explanationBuilder = Stub(AttributeMatchingExplanationBuilder)
     def describers = Mock(ConfigurableAttributeDescribers)
+    def explanationBuilder = Stub(AttributeMatchingExplanationBuilder)
+    def matcher = newMatcher()
 
-    static AttributeMatcher newMatcher() {
+    AttributeMatcher newMatcher() {
         def schema = AttributeTestUtil.immutableSchema {
-            JavaEcosystemSupport.configureSchema(delegate, describers,  TestUtil.objectFactory())
+            JavaEcosystemSupport.configureSchema(delegate, describers, TestUtil.objectFactory())
         }
         return AttributeTestUtil.serviceFactory().getMatcher(schema, ImmutableAttributesSchema.EMPTY)
     }

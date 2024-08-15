@@ -103,8 +103,8 @@ public abstract class JavaEcosystemSupport {
         );
     }
 
-    private static void configureConsumerDescriptors(ConfigurableAttributeDescribers attributesSchema) {
-        attributesSchema.addConsumerDescriber(new JavaEcosystemAttributesDescriber());
+    private static void configureConsumerDescriptors(ConfigurableAttributeDescribers describers) {
+        describers.addConsumerDescriber(new JavaEcosystemAttributesDescriber());
     }
 
     private static void configureTargetPlatform(AttributesSchema attributesSchema) {
