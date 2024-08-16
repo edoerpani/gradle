@@ -67,20 +67,22 @@ class ConfigurationCacheEnvironmentChangeTracker(private val problemFactory: Pro
 
     override fun <T : Any> withTrackingSystemPropertyChanges(action: Supplier<out T>): T {
         val beforeChanges = HashMap(System.getProperties())
-        val result = action.get()
-        val afterChanges = System.getProperties()
-        // Look up for changed and removed keys
-        beforeChanges.forEach { key, oldValue ->
-            when (val newValue = afterChanges[key]) {
-                (newValue == null) -> systemPropertyRemoved(key)
-                (oldValue != newValue) -> systemPropertyChanged(key, newValue, null)
+        try {
+            return action.get()
+        } finally {
+            val afterChanges = System.getProperties()
+            // Look up for changed and removed keys
+            beforeChanges.forEach { key, oldValue ->
+                when (val newValue = afterChanges[key]) {
+                    (newValue == null) -> systemPropertyRemoved(key)
+                    (oldValue != newValue) -> systemPropertyChanged(key, newValue, null)
+                }
+            }
+            // Look up for added keys
+            afterChanges.keys.subtract(beforeChanges.keys).forEach { newKey ->
+                systemPropertyChanged(newKey, afterChanges[newKey], null)
             }
         }
-        // Look up for added keys
-        afterChanges.keys.subtract(beforeChanges.keys).forEach { newKey ->
-            systemPropertyChanged(newKey, afterChanges[newKey], null)
-        }
-        return result
     }
 
     private var propSnapshot: Map<Any, Any>? = null
