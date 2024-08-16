@@ -85,7 +85,7 @@ class DefaultSystemPropertiesInstallerTest extends Specification {
         systemPropertiesInstaller.setSystemPropertiesFrom(loadedGradleProperties)
 
         then:
-        1 * environmentChangeTracker.systemPropertyOverridden("overrideSystemProp")
+        1 * environmentChangeTracker.systemPropertyOverridden("overrideSystemProp", entry.getValue())
     }
 
     def "build system properties"() {

@@ -27,6 +27,7 @@ import org.gradle.configurationcache.StoreResult
 import org.gradle.configurationcache.withFingerprintCheckOperations
 import org.gradle.configurationcache.withLoadOperation
 import org.gradle.configurationcache.withStoreOperation
+import org.gradle.initialization.EnvironmentChangeTracker
 import org.gradle.initialization.GradlePropertiesController
 import org.gradle.internal.build.BuildStateRegistry
 import org.gradle.internal.buildtree.BuildActionModelRequirements
@@ -91,7 +92,8 @@ class DefaultConfigurationCache internal constructor(
     private val fileSystemAccess: FileSystemAccess,
     private val calculatedValueContainerFactory: CalculatedValueContainerFactory,
     private val modelSideEffectExecutor: ConfigurationCacheBuildTreeModelSideEffectExecutor,
-    private val deferredRootBuildGradle: DeferredRootBuildGradle
+    private val deferredRootBuildGradle: DeferredRootBuildGradle,
+    private val environmentChangeTracker: EnvironmentChangeTracker,
 ) : BuildTreeConfigurationCache, Stoppable {
 
     private
@@ -396,10 +398,12 @@ class DefaultConfigurationCache internal constructor(
         prepareConfigurationTimeBarrier()
         startCollectingCacheFingerprint()
         InstrumentedInputs.setListener(instrumentedInputAccessListener)
+        environmentChangeTracker.trackingStarted()
     }
 
     private
     fun doneWithWork() {
+        environmentChangeTracker.trackingEnded()
         InstrumentedInputs.discardListener()
         cacheFingerprintController.stopCollectingFingerprint()
     }

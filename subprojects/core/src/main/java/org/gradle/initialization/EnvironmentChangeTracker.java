@@ -38,7 +38,7 @@ public interface EnvironmentChangeTracker {
     /**
      * System properties overridden by passing CLI argument
      * */
-    void systemPropertyOverridden(Object key);
+    void systemPropertyOverridden(Object key, String value);
 
     /**
      * Runs code and records all mutations to system properties it causes. All mutated system properties keep their new values after this method returns.
@@ -46,4 +46,8 @@ public interface EnvironmentChangeTracker {
      * @param action the code that may mutate system properties
      */
     <T> T withTrackingSystemPropertyChanges(Supplier<? extends T> action);
+
+    default void trackingStarted() {}
+
+    default void trackingEnded() {}
 }

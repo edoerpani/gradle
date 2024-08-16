@@ -56,8 +56,8 @@ public class DefaultSystemPropertiesInstaller implements SystemPropertiesInstall
     private void setSystemPropertiesFromStartParameter() {
         Map<String, String> systemPropertiesArgs = startParameter.getSystemPropertiesArgs();
 
-        for (String key : systemPropertiesArgs.keySet()) {
-            environmentChangeTracker.systemPropertyOverridden(key);
+        for (Map.Entry<String, String> entry : systemPropertiesArgs.entrySet()) {
+            environmentChangeTracker.systemPropertyOverridden(entry.getKey(), entry.getValue());
         }
 
         System.getProperties().putAll(systemPropertiesArgs);
@@ -74,6 +74,8 @@ public class DefaultSystemPropertiesInstaller implements SystemPropertiesInstall
                 String systemPropertyKey = key.substring(prefixLength);
                 if (!gradleInternal.isRootBuild()) {
                     environmentChangeTracker.systemPropertyLoaded(systemPropertyKey, properties.get(key), System.getProperty(systemPropertyKey));
+                } else {
+                    environmentChangeTracker.systemPropertyLoaded(systemPropertyKey, properties.get(key), properties.get(key));
                 }
                 System.setProperty(systemPropertyKey, uncheckedNonnullCast(properties.get(key)));
             }

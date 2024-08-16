@@ -48,8 +48,8 @@ class ConfigurationCacheEnvironmentChangeTracker(private val problemFactory: Pro
         mode.toTrackingMode().systemPropertyLoaded(key, value, oldValue)
     }
 
-    override fun systemPropertyOverridden(key: Any) =
-        mode.toTrackingMode().systemPropertyOverridden(key)
+    override fun systemPropertyOverridden(key: Any, value: String) =
+        mode.toTrackingMode().systemPropertyOverridden(key, value)
 
     fun isSystemPropertyMutated(key: String) = mode.toTrackingMode().isSystemPropertyMutated(key)
 
@@ -81,6 +81,53 @@ class ConfigurationCacheEnvironmentChangeTracker(private val problemFactory: Pro
             systemPropertyChanged(newKey, afterChanges[newKey], null)
         }
         return result
+    }
+
+    private var propSnapshot: Map<Any, Any>? = null
+
+    override fun trackingStarted() {
+        propSnapshot = HashMap(System.getProperties())
+    }
+
+    override fun trackingEnded() {
+        propSnapshot?.let { oldSnapshot ->
+            val newSnapshot = HashMap(System.getProperties())
+            oldSnapshot.forEach { key, oldValue ->
+                if (key is String) {
+                    when (val newValue = newSnapshot[key]) {
+                        (newValue == null) -> require(mode.toTrackingMode().isSystemPropertyRemoved(key)) {
+                            "Property $key was removed outside of Change Tracker"
+                        }
+                        (newValue != oldValue) -> require(
+                            getChangedSystemPropertyValue(key) == newValue
+                        ) {
+                            "Property $key was changed to $newValue outside of Change Tracker"
+                        }
+                    }
+                }
+            }
+            newSnapshot.keys.subtract(oldSnapshot.keys).forEach { key ->
+                if (key is String) {
+                    val newValue = newSnapshot.getValue(key)
+                    require(
+                        getChangedSystemPropertyValue(key) == newValue
+                    ) {
+                        "Property $key was added to $newValue outside of Change Tracker"
+                    }
+                }
+            }
+        }
+        propSnapshot = null
+    }
+
+    private
+    fun getChangedSystemPropertyValue(key: String): Any {
+        return mode.toTrackingMode().let {
+            require(it.isSystemPropertyMutated(key) || it.isSystemPropertyOverridden(key) || it.isSystemPropertyLoaded(key)) {
+                "System property $key was changed outside of Change Tracker"
+            }
+            it.getChangedValue(key)!!
+        }
     }
 
     private
@@ -145,8 +192,30 @@ class ConfigurationCacheEnvironmentChangeTracker(private val problemFactory: Pro
             return systemPropertiesCleared || mutatedSystemProperties[key] is SystemPropertyMutate
         }
 
+        fun getChangedValue(key: String): Any? {
+            val result = mutatedSystemProperties[key]
+            if (result is SystemPropertyMutate) {
+                return result.value
+            }
+            if (result is SystemPropertyOverride) {
+                return result.value
+            }
+            if (result is SystemPropertyLoad) {
+                return result.value
+            }
+            return null
+        }
+
         fun isSystemPropertyLoaded(key: String): Boolean {
             return mutatedSystemProperties[key] is SystemPropertyLoad
+        }
+
+        fun isSystemPropertyRemoved(key: String): Boolean {
+            return systemPropertiesCleared || mutatedSystemProperties[key] is SystemPropertyRemove
+        }
+
+        fun isSystemPropertyOverridden(key: String): Boolean {
+            return mutatedSystemProperties[key] is SystemPropertyOverride
         }
 
         fun getLoadedPropertyOldValue(key: String): Any? {
@@ -161,8 +230,8 @@ class ConfigurationCacheEnvironmentChangeTracker(private val problemFactory: Pro
             )
         }
 
-        fun systemPropertyOverridden(key: Any) {
-            mutatedSystemProperties[key] = SystemPropertyOverride
+        fun systemPropertyOverridden(key: Any, value: String) {
+            mutatedSystemProperties[key] = SystemPropertyOverride(key, value)
         }
 
         fun systemPropertyLoaded(key: Any, value: Any?, oldValue: Any?) {
@@ -240,7 +309,7 @@ class ConfigurationCacheEnvironmentChangeTracker(private val problemFactory: Pro
 
     class SystemPropertyLoad(key: Any, value: Any?, val oldValue: Any?) : SystemPropertySet(key, value, PropertyTrace.Unknown)
 
-    object SystemPropertyOverride : SystemPropertyChange()
+    class SystemPropertyOverride(val key: Any, val value: Any) : SystemPropertyChange()
 
     class SystemPropertyRemove(val key: String) : SystemPropertyChange()
 
