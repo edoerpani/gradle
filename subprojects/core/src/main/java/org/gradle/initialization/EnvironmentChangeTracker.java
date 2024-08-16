@@ -20,6 +20,7 @@ import org.gradle.internal.service.scopes.Scope;
 import org.gradle.internal.service.scopes.ServiceScope;
 
 import javax.annotation.Nullable;
+import java.util.function.Supplier;
 
 @ServiceScope(Scope.BuildTree.class)
 public interface EnvironmentChangeTracker {
@@ -44,5 +45,5 @@ public interface EnvironmentChangeTracker {
      *
      * @param action the code that may mutate system properties
      */
-    void withTrackingSystemPropertyChanges(Runnable action);
+    <T> T withTrackingSystemPropertyChanges(Supplier<? extends T> action);
 }

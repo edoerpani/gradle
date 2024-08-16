@@ -17,6 +17,7 @@
 package org.gradle.internal.cc.impl.services
 
 import org.gradle.initialization.EnvironmentChangeTracker
+import java.util.function.Supplier
 
 
 internal
@@ -28,7 +29,5 @@ class VintageEnvironmentChangeTracker : EnvironmentChangeTracker {
 
     override fun systemPropertyOverridden(key: Any) = Unit
 
-    override fun withTrackingSystemPropertyChanges(action: Runnable) {
-        action.run()
-    }
+    override fun <T : Any> withTrackingSystemPropertyChanges(action: Supplier<out T>): T = action.get()
 }
