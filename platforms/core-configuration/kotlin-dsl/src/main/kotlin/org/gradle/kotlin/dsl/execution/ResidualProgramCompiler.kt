@@ -35,6 +35,7 @@ import org.gradle.kotlin.dsl.support.CompiledKotlinSettingsPluginManagementBlock
 import org.gradle.kotlin.dsl.support.CompiledKotlinSettingsScript
 import org.gradle.kotlin.dsl.support.ImplicitReceiver
 import org.gradle.kotlin.dsl.support.KotlinCompilerOptions
+import org.gradle.kotlin.dsl.support.KotlinCompilerInitContext
 import org.gradle.kotlin.dsl.support.KotlinScriptHost
 import org.gradle.kotlin.dsl.support.bytecode.ALOAD
 import org.gradle.kotlin.dsl.support.bytecode.ARETURN
@@ -73,7 +74,7 @@ import kotlin.reflect.KClass
 
 
 internal
-typealias CompileBuildOperationRunner = (String, String, () -> String) -> String
+typealias CompileBuildOperationRunner = (String, String, KotlinCompilerInitContext.() -> String) -> String
 
 
 /**
@@ -92,7 +93,7 @@ class ResidualProgramCompiler(
     private val implicitImports: List<String> = emptyList(),
     private val logger: Logger = interpreterLogger,
     private val temporaryFileProvider: TemporaryFileProvider,
-    private val compileBuildOperationRunner: CompileBuildOperationRunner = { _, _, action -> action() },
+    private val compileBuildOperationRunner: CompileBuildOperationRunner,
     private val stage1BlocksAccessorsClassPath: ClassPath = ClassPath.EMPTY,
     private val packageName: String? = null,
 ) {

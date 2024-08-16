@@ -34,6 +34,7 @@ import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.initialization.EnvironmentChangeTracker
 import org.gradle.initialization.GradlePropertiesController
 import org.gradle.jvm.toolchain.JavaLauncher
 import org.gradle.kotlin.dsl.precompile.v1.PrecompiledPluginsBlock
@@ -42,6 +43,7 @@ import org.gradle.kotlin.dsl.support.KotlinCompilerOptions
 import org.gradle.kotlin.dsl.support.compileKotlinScriptModuleTo
 import org.gradle.kotlin.dsl.support.kotlinCompilerOptions
 import org.gradle.kotlin.dsl.support.scriptDefinitionFromTemplate
+import org.gradle.kotlin.dsl.support.withKotlinCompilerInitContext
 import javax.inject.Inject
 
 
@@ -104,18 +106,20 @@ abstract class CompilePrecompiledScriptPluginPlugins @Inject constructor(
         outputDir.withOutputDirectory { outputDir ->
             val scriptFiles = sourceFiles.map { it.path }
             if (scriptFiles.isNotEmpty())
-                compileKotlinScriptModuleTo(
-                    outputDir,
-                    compilerOptions,
-                    kotlinModuleName,
-                    scriptFiles,
-                    scriptDefinitionFromTemplate(
-                        PrecompiledPluginsBlock::class,
-                        implicitImportsForPrecompiledScriptPlugins(implicitImports)
-                    ),
-                    classPathFiles.filter { it.exists() },
-                    logger,
-                ) { it } // TODO: translate paths
+                services.get(EnvironmentChangeTracker::class.java).withKotlinCompilerInitContext {
+                    compileKotlinScriptModuleTo(
+                        outputDir,
+                        compilerOptions,
+                        kotlinModuleName,
+                        scriptFiles,
+                        scriptDefinitionFromTemplate(
+                            PrecompiledPluginsBlock::class,
+                            implicitImportsForPrecompiledScriptPlugins(implicitImports)
+                        ),
+                        classPathFiles.filter { it.exists() },
+                        logger,
+                    ) { it } // TODO: translate paths
+                }
         }
     }
 

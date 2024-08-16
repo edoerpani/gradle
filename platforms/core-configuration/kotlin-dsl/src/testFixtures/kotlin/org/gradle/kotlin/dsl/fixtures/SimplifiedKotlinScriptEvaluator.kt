@@ -39,8 +39,10 @@ import org.gradle.kotlin.dsl.execution.Interpreter
 import org.gradle.kotlin.dsl.execution.ProgramId
 import org.gradle.kotlin.dsl.execution.ProgramTarget
 import org.gradle.kotlin.dsl.support.ImplicitImports
+import org.gradle.kotlin.dsl.support.KotlinCompilerInitContext
 import org.gradle.kotlin.dsl.support.KotlinCompilerOptions
 import org.gradle.kotlin.dsl.support.KotlinScriptHost
+import org.gradle.kotlin.dsl.support.withKotlinCompilerInitContextForTesting
 import org.gradle.plugin.management.internal.PluginRequests
 import java.io.File
 import java.net.URLClassLoader
@@ -198,8 +200,8 @@ class SimplifiedKotlinScriptEvaluator(
         override fun hashOf(classPath: ClassPath): HashCode =
             TestHashCodes.hashCodeFrom(0)
 
-        override fun runCompileBuildOperation(scriptPath: String, stage: String, action: () -> String): String =
-            action()
+        override fun runCompileBuildOperation(scriptPath: String, stage: String, action: KotlinCompilerInitContext.() -> String): String =
+            withKotlinCompilerInitContextForTesting(action)
 
         override fun onScriptClassLoaded(scriptSource: ScriptSource, specializedProgram: Class<*>) = Unit
 

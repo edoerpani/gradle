@@ -34,6 +34,7 @@ import org.gradle.kotlin.dsl.fixtures.testRuntimeClassPath
 import org.gradle.kotlin.dsl.fixtures.withClassLoaderFor
 import org.gradle.kotlin.dsl.support.KotlinCompilerOptions
 import org.gradle.kotlin.dsl.support.KotlinScriptHost
+import org.gradle.kotlin.dsl.support.withKotlinCompilerInitContextForTesting
 import org.gradle.plugin.management.PluginManagementSpec
 import org.gradle.test.fixtures.file.TestNameTestDirectoryProvider
 import org.junit.Rule
@@ -79,6 +80,7 @@ abstract class TestWithCompiler : TestWithTempFiles() {
             sourceHash,
             programKind,
             programTarget,
+            compileBuildOperationRunner = {_, _, action -> withKotlinCompilerInitContextForTesting(action) },
             temporaryFileProvider = TestFiles.tmpDirTemporaryFileProvider(tmpDir.testDirectory)
         ).compile(program)
     }

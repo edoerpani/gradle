@@ -66,10 +66,12 @@ import org.gradle.kotlin.dsl.execution.ProgramId
 import org.gradle.kotlin.dsl.support.EmbeddedKotlinProvider
 import org.gradle.kotlin.dsl.support.ImplicitImports
 import org.gradle.kotlin.dsl.support.KotlinCompilerOptions
+import org.gradle.kotlin.dsl.support.KotlinCompilerInitContext
 import org.gradle.kotlin.dsl.support.KotlinScriptHost
 import org.gradle.kotlin.dsl.support.ScriptCompilationException
 import org.gradle.kotlin.dsl.support.kotlinCompilerOptions
 import org.gradle.kotlin.dsl.support.serviceOf
+import org.gradle.kotlin.dsl.support.withKotlinCompilerInitContext
 import org.gradle.plugin.management.internal.PluginRequests
 import org.gradle.plugin.use.internal.PluginRequestApplicator
 import java.io.File
@@ -200,12 +202,12 @@ class StandardKotlinScriptEvaluator(
                     ).bin
                 } ?: ClassPath.EMPTY
 
-        override fun runCompileBuildOperation(scriptPath: String, stage: String, action: () -> String): String =
+        override fun runCompileBuildOperation(scriptPath: String, stage: String, action: KotlinCompilerInitContext.() -> String): String =
 
             buildOperationRunner.call(object : CallableBuildOperation<String> {
 
                 override fun call(context: BuildOperationContext): String =
-                    environmentChangeTracker.withTrackingSystemPropertyChanges {
+                    environmentChangeTracker.withKotlinCompilerInitContext {
                         action().also {
                             context.setResult(object : Result {})
                         }

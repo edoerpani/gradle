@@ -90,7 +90,7 @@ import kotlin.script.experimental.jvm.JvmGetScriptingClass
 
 
 @Suppress("LongParameterList")
-fun compileKotlinScriptModuleTo(
+fun KotlinCompilerInitContext.compileKotlinScriptModuleTo(
     outputDirectory: File,
     compilerOptions: KotlinCompilerOptions,
     moduleName: String,
@@ -136,7 +136,7 @@ fun scriptDefinitionFromTemplate(
 
 
 internal
-fun compileKotlinScriptToDirectory(
+fun KotlinCompilerInitContext.compileKotlinScriptToDirectory(
     outputDirectory: File,
     compilerOptions: KotlinCompilerOptions,
     scriptFile: File,
@@ -161,7 +161,7 @@ fun compileKotlinScriptToDirectory(
 
 
 private
-fun compileKotlinScriptModuleTo(
+fun KotlinCompilerInitContext.compileKotlinScriptModuleTo(
     outputDirectory: File,
     compilerOptions: KotlinCompilerOptions,
     moduleName: String,
@@ -182,7 +182,7 @@ fun compileKotlinScriptModuleTo(
                 classPath.forEach { addJvmClasspathRoot(it) }
             }
 
-            val environment = kotlinCoreEnvironmentFor(configuration).apply {
+            val environment = kotlinCoreEnvironmentFor(this, configuration).apply {
                 HasImplicitReceiverCompilerPlugin.apply(project)
                 KotlinAssignmentCompilerPlugin.apply(project)
             }
@@ -221,7 +221,7 @@ object HasImplicitReceiverCompilerPlugin {
 
 @VisibleForTesting
 internal
-fun compileToDirectory(
+fun KotlinCompilerInitContext.compileToDirectory(
     outputDirectory: File,
     compilerOptions: KotlinCompilerOptions,
     moduleName: String,
@@ -239,7 +239,7 @@ fun compileToDirectory(
                 classPath.forEach { addJvmClasspathRoot(it) }
                 addJvmClasspathRoot(kotlinStdlibJar)
             }
-            val environment = kotlinCoreEnvironmentFor(configuration)
+            val environment = kotlinCoreEnvironmentFor(this, configuration)
             return compileBunchOfSources(environment)
         }
     }
@@ -420,15 +420,16 @@ fun CompilerConfiguration.addScriptDefinition(scriptDef: ScriptDefinition) {
 }
 
 
+@Suppress("UnusedReceiverParameter")  // Marker that prevents setting up environment without preparation.
 private
-fun Disposable.kotlinCoreEnvironmentFor(configuration: CompilerConfiguration): KotlinCoreEnvironment {
+fun KotlinCompilerInitContext.kotlinCoreEnvironmentFor(disposable: Disposable, configuration: CompilerConfiguration): KotlinCoreEnvironment {
     org.jetbrains.kotlin.cli.common.environment.setIdeaIoUseFallback()
     return SystemProperties.getInstance().withSystemProperty(
         KOTLIN_COMPILER_ENVIRONMENT_KEEPALIVE_PROPERTY.property,
         "true"
     ) {
         KotlinCoreEnvironment.createForProduction(
-            this,
+            disposable,
             configuration,
             EnvironmentConfigFiles.JVM_CONFIG_FILES
         )

@@ -22,6 +22,7 @@ import org.gradle.kotlin.dsl.fixtures.TestWithTempFiles
 import org.gradle.kotlin.dsl.support.KotlinCompilerOptions
 import org.gradle.kotlin.dsl.support.compileToDirectory
 import org.gradle.kotlin.dsl.support.loggerFor
+import org.gradle.kotlin.dsl.support.withKotlinCompilerInitContextForTesting
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.not
 import org.hamcrest.MatcherAssert.assertThat
@@ -310,14 +311,16 @@ class KotlinApiClassExtractorTest : TestWithTempFiles() {
         val sourceFile = newFile("$scriptName.kt", scriptBody)
 
         val binDir = newFolder("bin")
-        compileToDirectory(
-            binDir,
-            KotlinCompilerOptions(),
-            "test",
-            listOf(sourceFile),
-            loggerFor<KotlinApiClassExtractorTest>(),
-            emptyList()
-        )
+        withKotlinCompilerInitContextForTesting {
+            compileToDirectory(
+                binDir,
+                KotlinCompilerOptions(),
+                "test",
+                listOf(sourceFile),
+                loggerFor<KotlinApiClassExtractorTest>(),
+                emptyList()
+            )
+        }
 
         return ClassFixture(scriptBody, binDir.toPath().resolve(scriptClass).toFile().readBytes())
     }
