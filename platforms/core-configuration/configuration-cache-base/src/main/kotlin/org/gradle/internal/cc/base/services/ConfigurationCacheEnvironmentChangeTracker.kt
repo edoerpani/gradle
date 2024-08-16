@@ -66,23 +66,8 @@ class ConfigurationCacheEnvironmentChangeTracker(private val problemFactory: Pro
     fun systemPropertiesCleared() = mode.toTrackingMode().systemPropertiesCleared()
 
     override fun <T : Any> withTrackingSystemPropertyChanges(action: Supplier<out T>): T {
-        val beforeChanges = HashMap(System.getProperties())
-        try {
-            return action.get()
-        } finally {
-            val afterChanges = System.getProperties()
-            // Look up for changed and removed keys
-            beforeChanges.forEach { key, oldValue ->
-                when (val newValue = afterChanges[key]) {
-                    (newValue == null) -> systemPropertyRemoved(key)
-                    (oldValue != newValue) -> systemPropertyChanged(key, newValue, null)
-                }
-            }
-            // Look up for added keys
-            afterChanges.keys.subtract(beforeChanges.keys).forEach { newKey ->
-                systemPropertyChanged(newKey, afterChanges[newKey], null)
-            }
-        }
+        // We don't care about system property changes that happen before or after we start tracking the environment.
+        return mode.current().withTrackingSystemPropertyChanges(action)
     }
 
     private var propSnapshot: Map<Any, Any>? = null
@@ -147,6 +132,12 @@ class ConfigurationCacheEnvironmentChangeTracker(private val problemFactory: Pro
             }
         }
 
+        fun current(): TrackerMode {
+            synchronized(this) {
+                return mode
+            }
+        }
+
         fun toTrackingMode(): Tracking = setMode(TrackerMode::toTracking)
 
         fun toRestoringMode(): Restoring = setMode(TrackerMode::toRestoring)
@@ -156,6 +147,7 @@ class ConfigurationCacheEnvironmentChangeTracker(private val problemFactory: Pro
     sealed interface TrackerMode {
         fun toTracking(): Tracking
         fun toRestoring(): Restoring
+        fun <T : Any> withTrackingSystemPropertyChanges(action: Supplier<out T>): T
     }
 
     private
@@ -167,6 +159,8 @@ class ConfigurationCacheEnvironmentChangeTracker(private val problemFactory: Pro
         override fun toRestoring(): Restoring {
             return Restoring(emptySet())
         }
+
+        override fun <T : Any> withTrackingSystemPropertyChanges(action: Supplier<out T>): T = action.get()
     }
 
     private
@@ -267,6 +261,26 @@ class ConfigurationCacheEnvironmentChangeTracker(private val problemFactory: Pro
             systemPropertiesCleared = true
             mutatedSystemProperties.clear()
         }
+
+        override fun <T : Any> withTrackingSystemPropertyChanges(action: Supplier<out T>): T {
+            val beforeChanges = HashMap(System.getProperties())
+            try {
+                return action.get()
+            } finally {
+                val afterChanges = System.getProperties()
+                // Look up for changed and removed keys
+                beforeChanges.forEach { key, oldValue ->
+                    when (val newValue = afterChanges[key]) {
+                        (newValue == null) -> systemPropertyRemoved(key)
+                        (oldValue != newValue) -> systemPropertyChanged(key, newValue, null)
+                    }
+                }
+                // Look up for added keys
+                afterChanges.keys.subtract(beforeChanges.keys).forEach { newKey ->
+                    systemPropertyChanged(newKey, afterChanges[newKey], null)
+                }
+            }
+        }
     }
 
     private
@@ -299,6 +313,8 @@ class ConfigurationCacheEnvironmentChangeTracker(private val problemFactory: Pro
                 System.clearProperty(removal.key)
             }
         }
+
+        override fun <T : Any> withTrackingSystemPropertyChanges(action: Supplier<out T>): T = action.get()
     }
 
     class CachedEnvironmentState(val cleared: Boolean, val updates: List<SystemPropertySet>, val removals: List<SystemPropertyRemove>)
