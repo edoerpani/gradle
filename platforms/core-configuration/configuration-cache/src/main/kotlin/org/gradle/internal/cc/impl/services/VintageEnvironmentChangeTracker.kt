@@ -27,4 +27,8 @@ class VintageEnvironmentChangeTracker : EnvironmentChangeTracker {
     override fun systemPropertyLoaded(key: Any, value: Any?, oldValue: Any?) = Unit
 
     override fun systemPropertyOverridden(key: Any) = Unit
+
+    override fun withTrackingSystemPropertyChanges(action: Runnable) {
+        action.run()
+    }
 }

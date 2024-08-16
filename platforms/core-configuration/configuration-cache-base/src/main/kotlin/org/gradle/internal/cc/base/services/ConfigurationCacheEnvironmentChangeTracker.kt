@@ -64,6 +64,11 @@ class ConfigurationCacheEnvironmentChangeTracker(private val problemFactory: Pro
 
     fun systemPropertiesCleared() = mode.toTrackingMode().systemPropertiesCleared()
 
+    override fun withTrackingSystemPropertyChanges(action: Runnable) {
+        // TODO(mlopatkin) implement properly
+        action.run()
+    }
+
     private
     inner class ModeHolder {
         // ModeHolder encapsulates concurrent mode updates.
