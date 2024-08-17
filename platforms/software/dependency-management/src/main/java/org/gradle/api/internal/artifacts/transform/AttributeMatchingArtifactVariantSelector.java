@@ -54,6 +54,7 @@ public class AttributeMatchingArtifactVariantSelector implements ArtifactVariant
     private final ImmutableAttributesSchema consumerSchema;
     private final ImmutableAttributesFactory attributesFactory;
     private final AttributeSchemaServiceFactory attributeSchemaServices;
+    private final IsolatingTransformFinder isolatingTransformFinder;
     private final TransformedVariantFactory transformedVariantFactory;
     private final TransformUpstreamDependenciesResolverFactory dependenciesResolverFactory;
     private final ResolutionFailureHandler failureProcessor;
@@ -63,6 +64,7 @@ public class AttributeMatchingArtifactVariantSelector implements ArtifactVariant
         ImmutableAttributesSchema consumerSchema,
         ImmutableAttributesFactory attributesFactory,
         AttributeSchemaServiceFactory attributeSchemaServices,
+        IsolatingTransformFinder isolatingTransformFinder,
         TransformedVariantFactory transformedVariantFactory,
         TransformUpstreamDependenciesResolverFactory dependenciesResolverFactory,
         ResolutionFailureHandler failureProcessor
@@ -71,6 +73,7 @@ public class AttributeMatchingArtifactVariantSelector implements ArtifactVariant
         this.consumerSchema = consumerSchema;
         this.attributesFactory = attributesFactory;
         this.attributeSchemaServices = attributeSchemaServices;
+        this.isolatingTransformFinder = isolatingTransformFinder;
         this.transformedVariantFactory = transformedVariantFactory;
         this.dependenciesResolverFactory = dependenciesResolverFactory;
         this.failureProcessor = failureProcessor;
@@ -101,7 +104,7 @@ public class AttributeMatchingArtifactVariantSelector implements ArtifactVariant
         }
 
         // We found no matches. Attempt to construct artifact transform chains which produce matching variants.
-        List<TransformedVariant> transformedVariants = attributeSchemaServices.getTransformSelector(matcher).findTransformedVariants(transformRegistry, variants, componentRequested);
+        List<TransformedVariant> transformedVariants = isolatingTransformFinder.findTransformedVariants(matcher, transformRegistry.getRegistrations(), variants, componentRequested);
 
         // If there are multiple potential artifact transform variants, perform attribute matching to attempt to find the best.
         if (transformedVariants.size() > 1) {
