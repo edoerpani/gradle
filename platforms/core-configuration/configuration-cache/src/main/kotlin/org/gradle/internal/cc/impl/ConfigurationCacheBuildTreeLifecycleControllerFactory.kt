@@ -18,6 +18,7 @@ package org.gradle.internal.cc.impl
 
 import org.gradle.StartParameter
 import org.gradle.composite.internal.BuildTreeWorkGraphController
+import org.gradle.execution.ProjectConfigurer
 import org.gradle.internal.build.BuildLifecycleController
 import org.gradle.internal.build.BuildStateRegistry
 import org.gradle.internal.buildtree.BuildModelParameters
@@ -42,9 +43,17 @@ class ConfigurationCacheBuildTreeLifecycleControllerFactory internal constructor
     private val configurationCacheStartParameter: ConfigurationCacheStartParameter,
     private val buildStateRegistry: BuildStateRegistry,
     private val deferredRootBuildGradle: DefaultDeferredRootBuildGradle,
+    private val projectConfigurer: ProjectConfigurer
 ) : BuildTreeLifecycleControllerFactory {
     private
-    val vintageFactory = VintageBuildTreeLifecycleControllerFactory(buildModelParameters, taskGraph, buildOperationExecutor, stateTransitionControllerFactory, startParameter)
+    val vintageFactory = VintageBuildTreeLifecycleControllerFactory(
+        buildModelParameters,
+        taskGraph,
+        buildOperationExecutor,
+        stateTransitionControllerFactory,
+        startParameter,
+        projectConfigurer
+    )
 
     override fun createRootBuildController(targetBuild: BuildLifecycleController, workExecutor: BuildTreeWorkExecutor, finishExecutor: BuildTreeFinishExecutor): BuildTreeLifecycleController {
         // Some temporary wiring: the cache implementation is still scoped to the root build rather than the build tree
@@ -74,6 +83,15 @@ class ConfigurationCacheBuildTreeLifecycleControllerFactory internal constructor
 
         val finisher = ConfigurationCacheAwareFinishExecutor(finishExecutor, cache)
 
-        return DefaultBuildTreeLifecycleController(targetBuild, workController, modelCreator, finisher, stateTransitionControllerFactory, startParameter, buildModelParameters)
+        return DefaultBuildTreeLifecycleController(
+            targetBuild,
+            workController,
+            modelCreator,
+            finisher,
+            stateTransitionControllerFactory,
+            startParameter,
+            buildModelParameters,
+            projectConfigurer
+        )
     }
 }

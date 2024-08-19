@@ -18,6 +18,7 @@ package org.gradle.internal.buildtree
 
 import org.gradle.StartParameter
 import org.gradle.api.internal.GradleInternal
+import org.gradle.execution.ProjectConfigurer
 import org.gradle.internal.DefaultTaskExecutionRequest
 import org.gradle.internal.RunDefaultTasksExecutionRequest
 import org.gradle.internal.build.BuildLifecycleController
@@ -35,7 +36,8 @@ class DefaultBuildTreeLifecycleControllerTest extends Specification {
     def finishExecutor = Mock(BuildTreeFinishExecutor)
     def startParameter = Mock(StartParameter)
     def buildModelParameters = Mock(BuildModelParameters)
-    def controller = new DefaultBuildTreeLifecycleController(buildController, workController, modelCreator, finishExecutor, TestUtil.stateTransitionControllerFactory(), startParameter, buildModelParameters)
+    def projectsConfigurer = Mock(ProjectConfigurer)
+    def controller = new DefaultBuildTreeLifecycleController(buildController, workController, modelCreator, finishExecutor, TestUtil.stateTransitionControllerFactory(), startParameter, buildModelParameters, projectsConfigurer)
     def reportableFailure = new RuntimeException()
 
     def setup() {
