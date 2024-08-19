@@ -33,13 +33,12 @@ abstract class AbstractSwiftXCTestIntegrationTest extends AbstractNativeUnitTest
         Assume.assumeFalse(OperatingSystem.current().isMacOsX() && toolChain.version.major == 3)
 
         if (OperatingSystem.current().isMacOsX()) {
+            // XCTest is bundled with XCode, so the test cannot be run if XCode is not installed
             def result = ["xcrun", "--show-sdk-platform-path"].execute().waitFor()
-            if (result == 0) {
-                println "-> XCode installed"
-            } else {
+            if (result != 0) {
                 // Assume not installed
-                println "-> XCode not installed"
-                throw new RuntimeException("XCode not installed")
+                println "XCode is not installed"
+                Assume.assumeTrue("XCode should be installed", false)
             }
         }
     }
