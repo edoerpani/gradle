@@ -124,16 +124,19 @@ class NativeBinaryFixture {
         } else {
             def symbols = binaryInfo.listDebugSymbols()
             def symbolNames = symbols.collect { it.name }
-            if (toolChain.meets(ToolChainRequirement.SWIFTC) && toolChain.version < VersionNumber.version(5, 10)) {
-                // Older versions used the object file
-                sourceFileNames.each { sourceFileName ->
+            def isOlderSwiftc = toolChain.meets(ToolChainRequirement.SWIFTC) && toolChain.version < VersionNumber.version(5, 10)
+            sourceFileNames.each { sourceFileName ->
+                if (sourceFileName in symbolNames) {
+                    return
+                }
+                if (isOlderSwiftc) {
+                    // Older versions used the object file instead of source file in some cases
                     def objFileName = sourceFileName.replace(".swift", ".o")
-                    assert symbolNames.any { it.endsWith(objFileName) }
+                    if (symbolNames.any { it.endsWith(objFileName) }) {
+                        return
+                    }
                 }
-            } else {
-                sourceFileNames.each { sourceFileName ->
-                    assert sourceFileName in symbolNames
-                }
+                throw new AssertionError("Could not find source file '$sourceFileName' in symbols $symbolNames")
             }
         }
     }
