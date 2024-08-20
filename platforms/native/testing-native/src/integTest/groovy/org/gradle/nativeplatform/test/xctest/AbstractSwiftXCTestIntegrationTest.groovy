@@ -32,15 +32,8 @@ abstract class AbstractSwiftXCTestIntegrationTest extends AbstractNativeUnitTest
         // TODO: Temporarily disable XCTests with Swift3 on macOS
         Assume.assumeFalse(OperatingSystem.current().isMacOsX() && toolChain.version.major == 3)
 
-        if (OperatingSystem.current().isMacOsX()) {
-            // XCTest is bundled with XCode, so the test cannot be run if XCode is not installed
-            def result = ["xcrun", "--show-sdk-platform-path"].execute().waitFor()
-            if (result != 0) {
-                // Assume not installed
-                println "XCode is not installed"
-                Assume.assumeTrue("XCode should be installed", false)
-            }
-        }
+        // Need XCTest available to run these tests
+        XCTestInstallation.assumeInstalled()
     }
 
     @Override
